@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import React from "react";
 import { ethers } from "ethers";
 import styles from "../styles/Home.module.scss";
@@ -174,6 +175,7 @@ const Home = ({ accessToken }) => {
 
   React.useEffect(() => {
     checkIfWalletIsConnected();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

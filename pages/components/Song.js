@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from "react";
 import styles from "../../styles/Songs.module.scss";
 import * as timeago from "timeago.js";
