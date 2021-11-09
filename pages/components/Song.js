@@ -6,7 +6,7 @@ import * as timeago from "timeago.js";
 const Song = ({ trackLink, address, time, token }) => {
   const [songData, setSongData] = React.useState(null);
 
-  const trackID = trackLink.slice(31, 53) || "";
+  const trackID = trackLink?.slice(31, 53) || "";
 
   React.useEffect(() => {
     fetch(`https://api.spotify.com/v1/tracks/${trackID}`, {
