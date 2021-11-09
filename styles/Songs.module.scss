@@ -1,0 +1,36 @@
+.songWrapper {
+  margin: 40px 0;
+
+  .address {
+    font-size: 0.7rem;
+    color: #fff;
+  }
+
+  .song {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: white;
+    padding: 20px;
+    margin: 5px 0;
+    border: 1px solid gray;
+    border-radius: 10px;
+    background-color: rgba(17, 17, 17, 0.8);
+    box-shadow: 0 0 20px -14px greenyellow;
+
+    li {
+      list-style: none;
+      margin-bottom: 5px;
+    }
+
+    img {
+      width: 100px;
+    }
+  }
+
+  .time {
+    font-size: 0.7rem;
+    color: white;
+    text-align: end;
+  }
+}

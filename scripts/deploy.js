@@ -1,12 +1,14 @@
 const main = async () => {
-  const waveContractFactory = await hre.ethers.getContractFactory("WavePortal");
-  const waveContract = await waveContractFactory.deploy({
+  const songContractFactory = await hre.ethers.getContractFactory(
+    "MetaPlaylist"
+  );
+  const songContract = await songContractFactory.deploy({
     value: hre.ethers.utils.parseEther("0.001"),
   });
 
-  await waveContract.deployed();
+  await songContract.deployed();
 
-  console.log("WavePortal address: ", waveContract.address);
+  console.log("SongContract address: ", songContract.address);
 };
 
 const runMain = async () => {

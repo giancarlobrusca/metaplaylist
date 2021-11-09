@@ -1,40 +1,49 @@
 import React from "react";
 import { ethers } from "ethers";
-import styles from "../styles/Home.module.css";
-import abi from "../artifacts/contracts/WavePortal.sol/WavePortal.json";
+import styles from "../styles/Home.module.scss";
+import abi from "../artifacts/contracts/MetaPlaylist.sol/MetaPlaylist.json";
+import { Song } from "./components/Song";
+import queryString from "querystring";
 
-const Home = () => {
+const Home = ({ accessToken }) => {
   const [currentAccount, setCurrentAccount] = React.useState("");
+  const [uri, setUri] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [showHelp, setShowHelp] = React.useState(false);
+  const [showMetaMaskHelp, setShowMetaMaskHelp] = React.useState(false);
+  const [mining, setMining] = React.useState(false);
 
-  const [allWaves, setAllWaves] = React.useState([]);
-  const contractAddress = "0xCC312bC37CaA603536B7967982B27aa03979b817";
+  const [allSongs, setAllSongs] = React.useState([]);
+  const contractAddress = "0x6fdf83eFA96E727F52DDDf2aF37c20147Fbe9385";
   const contractABI = abi.abi;
 
-  async function getAllWaves() {
+  console.log(uri);
+
+  async function getAllSongs() {
     try {
       const { ethereum } = window;
 
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum);
         const signer = provider.getSigner();
-        const wavePortalContract = new ethers.Contract(
+        const songPortalContract = new ethers.Contract(
           contractAddress,
           contractABI,
           signer
         );
 
-        const waves = await wavePortalContract.getAllWaves();
+        const songs = await songPortalContract.getAllSongs();
 
-        let wavesCleaned = [];
-        waves.forEach((wave) => {
-          wavesCleaned.push({
-            address: wave.waver,
-            timestamp: new Date(wave.timestamp * 1000),
-            message: wave.message,
+        let songsCleaned = [];
+        songs.forEach((song) => {
+          songsCleaned.push({
+            address: song.waver,
+            timestamp: new Date(song.timestamp * 1000),
+            uri: song.uri,
           });
         });
 
-        setAllWaves(wavesCleaned);
+        setAllSongs(songsCleaned);
       } else {
         console.log("Ethereum object doesn't exist!");
       }
@@ -44,24 +53,23 @@ const Home = () => {
   }
 
   async function checkIfWalletIsConnected() {
+    setShowMetaMaskHelp(false);
+
     try {
       const { ethereum } = window;
 
       if (!ethereum) {
-        console.log("Make sure you have metamask!");
+        setShowMetaMaskHelp(true);
         return;
-      } else {
-        console.log("We have the ethereum object", ethereum);
       }
 
       const accounts = await ethereum.request({ method: "eth_accounts" });
 
       if (accounts.length !== 0) {
         const account = accounts[0];
-        console.log("Found an authorized account:", account);
         setCurrentAccount(account);
 
-        getAllWaves();
+        getAllSongs();
       } else {
         console.log("No authorized account found");
       }
@@ -71,11 +79,13 @@ const Home = () => {
   }
 
   async function connectWallet() {
+    setShowMetaMaskHelp(false);
+
     try {
       const { ethereum } = window;
 
       if (!ethereum) {
-        alert("Get MetaMask!");
+        setShowMetaMaskHelp(true);
         return;
       }
 
@@ -83,40 +93,40 @@ const Home = () => {
         method: "eth_requestAccounts",
       });
 
-      console.log("Connected", accounts[0]);
       setCurrentAccount(accounts[0]);
     } catch (error) {
       console.error(error);
     }
   }
 
-  async function wave() {
+  async function addSong() {
+    setError("");
+
+    if (uri.length < 20) {
+      setError("Bad link!");
+      return;
+    }
+
     try {
       const { ethereum } = window;
 
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum);
         const signer = provider.getSigner();
-        const wavePortalContract = new ethers.Contract(
+        const songPortalContract = new ethers.Contract(
           contractAddress,
           contractABI,
           signer
         );
 
-        let count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
-
-        const waveTxn = await wavePortalContract.wave("First message!", {
+        const waveTxn = await songPortalContract.addSong(uri, {
           gasLimit: 300000,
         });
-        console.log("Mining...", waveTxn.hash);
+        setMining(true);
+        setUri("");
 
         await waveTxn.wait();
-        console.log("Mined -- ", waveTxn.hash);
-
-        count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
-        getAllWaves();
+        setMining(false);
       } else {
         console.log("Ethereum object doesn't exist!");
       }
@@ -126,81 +136,155 @@ const Home = () => {
   }
 
   React.useEffect(() => {
-    let wavePortalContract;
+    let songPortalContract;
 
-    const onNewWave = (address, timestamp, message) => {
-      console.log("NewWave", address, timestamp, message);
+    const onNewSong = (address, timestamp, uri) => {
+      console.log("NewSong", address, timestamp, uri);
 
-      setAllWaves((prevWaves) => [
-        ...prevWaves,
+      setAllSongs((prevSongs) => [
+        ...prevSongs,
         {
           address,
           timestamp: new Date(timestamp * 1000),
-          message,
+          uri,
         },
       ]);
     };
 
-    if (window.ethereum) {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const { ethereum } = window;
+
+    if (ethereum) {
+      const provider = new ethers.providers.Web3Provider(ethereum);
       const signer = provider.getSigner();
 
-      wavePortalContract = new ethers.Contract(
+      songPortalContract = new ethers.Contract(
         contractAddress,
         contractABI,
         signer
       );
-      wavePortalContract.on("NewWave", onNewWave);
+      songPortalContract.on("NewSong", onNewSong);
     }
 
     return () => {
-      if (wavePortalContract) {
-        wavePortalContract.off("NewWave", onNewWave);
+      if (songPortalContract) {
+        songPortalContract.off("NewSong", onNewSong);
       }
     };
+  }, [contractABI]);
+
+  React.useEffect(() => {
+    checkIfWalletIsConnected();
   }, []);
 
-  React.useEffect(() => checkIfWalletIsConnected(), []);
-
   return (
-    <div className={styles.mainContainer}>
-      <div className={styles.dataContainer}>
+    <main className={styles.mainContainer}>
+      <div>
         <h1 className={styles.header}>
-          👋 Hey there! Im <strong>@giancarlol</strong> and this is my first
-          dApp!
+          Let's make a <strong>MetaPlaylist</strong> together
         </h1>
+        <div className={styles.form}>
+          <input
+            onFocus={() => setShowHelp(true)}
+            onBlur={() => {
+              setShowHelp(false);
+              setError("");
+            }}
+            type="text"
+            value={uri}
+            onChange={(e) => setUri(e.target.value)}
+          />
+          {error && <p style={{ color: "red" }}>{error}</p>}
+          {showHelp && (
+            <>
+              <p className={styles.help}>
+                Please put a complete Spotify track link
+              </p>
+              <p style={{ color: "white", fontSize: "0.7rem" }}>
+                For example:
+                https://open.spotify.com/track/7I8L3vYCLThw2FDrE6LuzE?si=374812cc8f9641b3
+              </p>
+            </>
+          )}
+          {showMetaMaskHelp && (
+            <>
+              <p className={styles.help}>
+                You need to get{" "}
+                <a
+                  style={{ textDecoration: "underline" }}
+                  href="https://metamask.io/"
+                  alt="MetaMask page"
+                >
+                  MetaMask
+                </a>
+              </p>
+              <p style={{ color: "white", fontSize: "0.7rem" }}>
+                It's preatty easy!
+              </p>
+            </>
+          )}
 
-        <div className={styles.bio}></div>
-
-        {!currentAccount ? (
-          <button className="waveButton" onClick={connectWallet}>
-            Connect Wallet
-          </button>
-        ) : (
-          <button className={styles.waveButton} onClick={wave}>
-            Wave at Me
-          </button>
-        )}
-
-        {allWaves.map((wave, index) => {
-          return (
-            <div
-              key={index}
-              style={{
-                backgroundColor: "OldLace",
-                marginTop: "16px",
-                padding: "8px",
-              }}
-            >
-              <div>Address: {wave.address}</div>
-              <div>Time: {wave.timestamp.toString()}</div>
-              <div>Message: {wave.message}</div>
-            </div>
-          );
-        })}
+          {!currentAccount ? (
+            <button onClick={connectWallet}>Connect Wallet</button>
+          ) : (
+            <button onClick={addSong}>
+              {mining ? "Mining..." : "Add song"}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+      <div>
+        {allSongs.map((song, index) => (
+          <Song
+            key={index}
+            address={song.address}
+            trackLink={song.uri}
+            time={song.timestamp.toString()}
+            token={accessToken}
+          />
+        ))}
+      </div>
+      <footer>
+        Builded by{" "}
+        <a href="" alt="Giancarlo's Twitter">
+          @giancarlol
+        </a>
+        , thanks to <a href="https://buildspace.so/">buildspace</a>
+      </footer>
+    </main>
   );
 };
+
+export async function getServerSideProps() {
+  const clientID = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+
+  const base64Auth = Buffer.from(`${clientID}:${clientSecret}`).toString(
+    "base64"
+  );
+
+  let data;
+
+  try {
+    const response = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${base64Auth}`,
+      },
+      body: queryString.stringify({
+        grant_type: "client_credentials",
+      }),
+    });
+    data = await response.json();
+  } catch (error) {
+    console.log(error);
+  }
+
+  return {
+    props: {
+      accessToken: data.access_token,
+    },
+  };
+}
 
 export default Home;
