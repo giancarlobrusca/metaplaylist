@@ -3,7 +3,7 @@ import React from "react";
 import { ethers } from "ethers";
 import styles from "../styles/Home.module.scss";
 import abi from "../artifacts/contracts/MetaPlaylist.sol/MetaPlaylist.json";
-import { Song } from "./components/Song";
+import Song from "./components/Song";
 import queryString from "querystring";
 
 const Home = ({ accessToken }) => {

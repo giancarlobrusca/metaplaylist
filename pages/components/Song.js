@@ -3,7 +3,7 @@ import React from "react";
 import styles from "../../styles/Songs.module.scss";
 import * as timeago from "timeago.js";
 
-export const Song = ({ trackLink, address, time, token }) => {
+const Song = ({ trackLink, address, time, token }) => {
   const [songData, setSongData] = React.useState(null);
 
   const trackID = trackLink.slice(31, 53) || "";
@@ -44,3 +44,5 @@ export const Song = ({ trackLink, address, time, token }) => {
     </div>
   );
 };
+
+export default Song;
